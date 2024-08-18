@@ -1,0 +1,56 @@
+---
+title: "Palestine Protest Data Analysis"
+author: "Katherine Oung, Vanderbilt University"
+date: "2024-08-16"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(stringr)
+```
+
+```{r}
+pal_sch_sum <- read.csv("pal-protest-dataset-20240813.csv")
+```
+
+Total schools
+```{r}
+nrow(pal_sch_sum)
+```
+```{r}
+pal_sch_sum %>%
+  filter(arrest_instances > 0)
+```
+
+```{r}
+all_police_measures <- pal_sch_sum %>%
+  filter(!str_detect(police_measures_list,"^NA(,\\s*NA)*$")) %>%
+  select(school, police_measures_list) %>%
+  mutate(swept = ifelse(str_detect(police_measures_list,"swept|clear|remove (?:tent|memorial)|art installation|dismantl|confiscat"),1,0)) %>%
+  mutate(skirmish = ifelse(str_detect(police_measures_list,"skirmish|push|punch|tore|beat|threw|scuffle|tear gas (?:fired)|knee on neck"),1,0)) %>%
+  mutate(campus_access = ifelse(str_detect(police_measures_list,"access|building|stopped protesters from entering"),1,0)) %>%
+  mutate(escorted = ifelse(str_detect(police_measures_list,"forcibly removed|removed protesters|escorted|usher|led protestor (?:out)"),1,0)) %>%
+  mutate(counter_protestors = ifelse(str_detect(police_measures_list,"counter-protester|intervened"),1,0)) %>%
+  mutate(arrested_others = ifelse(str_detect(police_measures_list,"legal|journalist|medic|media|photographer"),1,0))
+
+write.csv(all_police_measures,
+          sprintf("pal_school_arrests-%s.csv", gsub("-", "", edge_date)),
+          row.names = F)
+```
+
+Various police actions
+```{r}
+all_police_measures <- pal_sch_sum %>%
+  lapply(function(x) unique(str_trim(x)))%>%# Remove duplicates within each row
+  pull(police_measures_list)%>%# Extract the column
+  str_split("[,;]")%>%# Split by comma or semicolon
+  unlist()%>%# Flatten the list to a vector
+  str_trim()# Remove leading/trailing whitespace# Convert to a tibble for easier manipulation
+df <- tibble(police_measures = all_police_measures)# Count the occurrences of each unique value
+value_counts <- df %>%
+  count(police_measures, name ="count")# View the counts 
+value_counts
+```

@@ -20,7 +20,10 @@ The R grepl() function will help you filter down any instances of a word!!!
 ```{r}
 library(tidyverse)
 library(lubridate)
+library(dplyr)
+library(stringr)
 ```
+
 ```{r}
 edge_date <- Sys.Date() - 1
 
@@ -59,6 +62,12 @@ pal <- ccc %>%
          counterprotested = ifelse(!is.na(macroevent), 1, 0),
          suspensions = ifelse(grepl("suspen", claims, ignore.case = TRUE) | grepl("suspen", notes, ignore.case = TRUE), 1, 0),
          expulsions = ifelse(grepl("expel|expulsion", claims, ignore.case = TRUE) | grepl("expel|expulsion", notes, ignore.case = TRUE), 1, 0))
+```
+
+```{r}
+pal %>%
+  filter(grepl("Wayne State University", location_detail, ignore.case = TRUE))
+
 ```
 
 ```{r}
@@ -108,9 +117,12 @@ pal_sch_sum <- pal %>%
             expulsions = max(expulsions),
             claims_list = paste(claims, collapse = ", "),
             notes_list = paste(notes, collapse = ", "),
-            participants_measures_list = paste(participant_measures, collapse = ", "),
-            police_measures_list = paste(police_measures, collapse = ", "),
-            property_damage_list = paste(property_damage, collapse = ", "),
+            participants_measures_list =if(participant_measures)>0){
+               paste(participant_measures, collapse =", ")}else{""},
+            police_measures_list =if(length(police_measures)>0){
+               paste(police_measures, collapse =", ")}else{""},
+            property_damage_list =if(length(property_damage)>0){
+               paste(property_damage, collapse =", ")}else{""},
             injuries_crowd_instances = sum(injuries_crowd_any),
             injuries_police_instances = sum(injuries_police_any),
             property_damage_instances = sum(property_damage_any)) |>
@@ -121,10 +133,8 @@ write.csv(pal_sch_sum,
           sprintf("pal-sch-summary-%s.csv", gsub("-", "", edge_date)),
           row.names = F)
 ```
-```{r}
-pal_sch_sum %>%
-  filter(school == "University of Florida")
-```
+
+
 
 ```{r}
 nrow(filter(pal, schools == 1))
@@ -215,4 +225,41 @@ X |>
          subtitle = "October 7\u2013May 29, 2024",
          caption = "Source: Crowd Counting Consortium")
 dev.off()
+```
+
+
+```{r}
+pal_school <- pal %>%
+  filter(schools == 1) %>%
+  mutate(date = date(date)) |>
+  mutate(school = map_chr(location_detail, function(x) {
+
+      y <- str_split_1(x, ";")
+
+      y <- str_trim(y)
+
+      z <- grepl(regex_schools, y, perl = T, ignore.case = T)
+
+      a <- str_trim(y[z])[1]
+
+      return(a)
+
+    })
+
+  ) |>
+  mutate(school = gsub(" - |-", " ", school),
+         school = gsub(" at ", " ", school),
+         school = gsub("State University of New York", "SUNY", school),
+         school = gsub("City University of New York", "CUNY", school),
+         school = gsub("\\bUC\\b", "University of California", school))
+
+pal_school_arrests <- pal_school %>%
+  select(location_detail, arrests, police_measures) %>%
+  distinct() %>%
+  count(police_measures, location_detail) %>%
+  arrange(location_detail)
+
+write.csv(pal_school_arrests,
+          sprintf("pal_school_arrests-%s.csv", gsub("-", "", edge_date)),
+          row.names = F)
 ```
