@@ -66,7 +66,7 @@ pal <- ccc %>%
 
 ```{r}
 pal %>%
-  filter(grepl("Wayne State University", location_detail, ignore.case = TRUE))
+  filter(grepl("Vanderbilt", location_detail, ignore.case = TRUE))
 
 ```
 
@@ -107,8 +107,10 @@ pal_sch_sum <- pal %>%
             instances_recorded = n(),
             lat = first(lat),
             long = first(lon),
-            date_min = min(date),
-            date_max = max(date),
+            protest_min = min(date),
+            protest_max = max(date),
+            encampment_min = min(date[encampment == TRUE], na.rm = TRUE),
+            encampment_max = max(date[encampment == TRUE], na.rm = TRUE),
             encampment_days = sum(encampment, na.rm = T),
             arrest_instances = sum(arrests_any),
             arrests = sum(as.integer(arrests), na.rm = T),
@@ -117,16 +119,13 @@ pal_sch_sum <- pal %>%
             expulsions = max(expulsions),
             claims_list = paste(claims, collapse = ", "),
             notes_list = paste(notes, collapse = ", "),
-            participants_measures_list =if(participant_measures)>0){
-               paste(participant_measures, collapse =", ")}else{""},
-            police_measures_list =if(length(police_measures)>0){
-               paste(police_measures, collapse =", ")}else{""},
-            property_damage_list =if(length(property_damage)>0){
-               paste(property_damage, collapse =", ")}else{""},
+            participants_measures_list = paste(participant_measures, collapse =", "),
+            police_measures_list = paste(police_measures, collapse =", "),
+            property_damage_list = paste(property_damage, collapse =", "),
             injuries_crowd_instances = sum(injuries_crowd_any),
             injuries_police_instances = sum(injuries_police_any),
-            property_damage_instances = sum(property_damage_any)) |>
-  arrange(-encampment_days) |>
+            property_damage_instances = sum(property_damage_any)) %>%
+  arrange(-encampment_days) %>%
   mutate(school = gsub(", (?:Manhattan|Queens|Bronx|Staten Island|Brooklyn)", "", school))
 
 write.csv(pal_sch_sum,
