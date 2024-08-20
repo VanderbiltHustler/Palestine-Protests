@@ -51,7 +51,6 @@ ccc <- read.csv("https://github.com/nonviolent-action-lab/crowd-counting-consort
 
 ```{r}
 # all pro-palestine protests
-
 pal <- ccc %>%
   filter(date >= "2023-10-07" & date <= edge_date) %>%
   filter(grepl("for palestinian (?:liberation|rights)|free palestine(?! from hamas)|in solidarity with (?:palestin|gaza)|in remembrance of palestin|ceasefire in gaza|against apartheid in israel|(?:for ending|against) israel's occupation of palestin|genocide of palestin", claims, ignore.case = TRUE, perl = TRUE)) %>%
@@ -62,6 +61,16 @@ pal <- ccc %>%
          counterprotested = ifelse(!is.na(macroevent), 1, 0),
          suspensions = ifelse(grepl("suspen", claims, ignore.case = TRUE) | grepl("suspen", notes, ignore.case = TRUE), 1, 0),
          expulsions = ifelse(grepl("expel|expulsion", claims, ignore.case = TRUE) | grepl("expel|expulsion", notes, ignore.case = TRUE), 1, 0))
+
+pal_school <- pal %>%
+  filter(schools == 1) %>%
+  select(date, locality, state, location_detail, encampment)
+
+pal_school %>%
+  #filter(encampment == 1) %>%
+  group_by(date) %>%
+  count() %>%
+  arrange(date)
 ```
 
 ```{r}
